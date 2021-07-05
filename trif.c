@@ -136,19 +136,19 @@ int main(int argc, char **argv, char **env)
                         filetype[0] = '\0';
                         strcat(filetype, ".");
                         strcat(filetype, optarg);
-                        fileflag = 0;
+                        fileflag = false;
                     }
                 }
                 else if (!strcmp(long_options[option_index].name, "help"))
                 {
-                    helpflag = 1;
+                    helpflag = true;
                 }
 
                 break;
             }
             case 'D':
                 // fprintf(stdout, "r-success\n");
-                Dflag = 1;
+                Dflag = true;
                 break;
             case 'r':
                 // fprintf(stdout, "r-success\n");
@@ -156,11 +156,11 @@ int main(int argc, char **argv, char **env)
                 break;
             case 'i':
                 // fprintf(stdout, "i-success\n");
-                iflag = 1;
+                iflag = true;
                 break;
             case 'f':
                 //  fprintf(stdout, "f-success\n");
-                fflag = 1;
+                fflag = true;
                 break;
             case 'L':
             {
@@ -179,7 +179,7 @@ int main(int argc, char **argv, char **env)
             case 'd':
             {
                 // fprintf(stdout, "d-success\n");
-                dflag = 1;
+                dflag = true;
                 break;
             }
             case 'P':
@@ -190,7 +190,7 @@ int main(int argc, char **argv, char **env)
             }
             case 's':
                 //  fprintf(stdout, "s-success\n");
-                sflag = 1;
+                sflag = true;
                 break;
             case '?':
                 fprintf(stdout, "Try: 'trif --help' for more information\n");
@@ -430,7 +430,98 @@ void print_tree(t_node *root)
         }
     }
 }
+void mem_eff_print_tree(char *dir_name, char *dir_path, int level)
+{
 
+    strncpy(n1->path, dir_path, strlen(dir_path));
+    n1->path[strlen(dir_path)] = '\0';
+    strncpy(n1->name, dir_name, strlen(dir_name));
+    fprintf(stdout,"%s")
+
+    DIR *dir = opendir(dir_path);
+    struct dirent *entry;
+    struct stat st_buf;
+    int files = 0;
+    if (dir == NULL)
+    {
+        return NULL;
+    }
+    //counting no. of files
+    while ((entry = readdir(dir)) != NULL)
+    {
+        files++;
+        // printf("file is %s\n", entry->d_name);
+    }
+    n1->n_files = files;
+    closedir(dir);
+    dir = opendir(n1->path);
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        char *name;
+        name = strdup(entry->d_name);
+        char *path = ret_path(n1->path, name);
+        int status = stat(path, &st_buf);
+        if (status != 0)
+        {
+            printf("%s,", path);
+            perror("trif: ");
+            printf("Error, errno = %d\n", errno);
+            return NULL;
+        }
+        if (S_ISREG(st_buf.st_mode))
+        {
+            t_node *node = (t_node *)malloc(sizeof(t_node));
+
+            char *base_name = getBName(name);
+            char *ext = strdup(getExt(name));
+
+            size_t path_len = strlen(path);
+            size_t name_len = strlen(base_name);
+
+            strncpy(node->path, path, path_len);
+            strncpy(node->name, base_name, name_len);
+
+            free(base_name);
+
+            node->path[path_len] = '\0';
+            node->name[name_len] = '\0';
+
+            if (name_len == 0)
+            {
+                node->ishidden = 1;
+            }
+            else
+            {
+                node->ishidden = 0;
+            }
+            node->ext = ext;
+            node->isdir = false;
+            node->flag = 0;
+            node->level = n1->level + 1;
+            node->n_files = -1;
+            node->next = NULL;
+            n1->next[pos] = node;
+            pos++;
+        }
+        if (S_ISDIR(st_buf.st_mode))
+        {
+            if (!strcmp(name, ".") || !strcmp(name, ".."))
+            {
+            }
+            else
+            {
+                n1->next[pos] = create_tree(name, path, n1);
+
+                pos++;
+            }
+        }
+        free(name);
+        free(path);
+    }
+    closedir(dir);
+    return n1;
+}
 void print_diff_tree(t_node *root)
 {
     if (root == NULL)
