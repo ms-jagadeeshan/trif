@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <dirent.h>
 #include <libgen.h>
@@ -10,6 +8,18 @@
 #include "ft.h"
 #include "triflib.h"
 
+// rflag - remove duplicate flag
+// iflag - interactive mode flag
+// fflag - full path flag
+// dflag - directory only fflag
+// Dflag - Difference flag flag
+// level - level of the tree initialized as 10000, if user gives it will be over written
+// pstring - pattern string
+// sflag - sync flag
+// helpflag - help flag
+// fileflag - flag for, is file type specified or not
+// no_dir - number of directory argument given
+
 int rflag = 0, iflag = 0, fflag = 0, dflag = 0, Dflag = 0;
 size_t level = 10000;
 char *p_string = NULL;
@@ -19,28 +29,28 @@ int no_dir;
 int fileflag = 1;
 char *pwd = "";
 char *trash_path = "";
-typedef struct t_node
+typedef struct t_node // node in tree
 {
-    char path[PATH_MAX];
-    char name[NAME_MAX];
-    char *ext;
-    int isdir;
-    int level;
-    int flag;
-    int ishidden;
-    size_t n_files;
-    struct t_node **next;
+    char path[PATH_MAX];  // full path name
+    char name[NAME_MAX];  // base name e.g lab-1 in lab-1.c
+    char *ext;            // extension e.g .c in lab-1.c
+    int isdir;            // is directory or not
+    int level;            // level of the file or directory
+    int flag;             // flag for , whether to print or not
+    int ishidden;         // is this hidden file or not
+    size_t n_files;       // number of files, if it is directory
+    struct t_node **next; // array of pointers for child nodes( i.e) files
 } t_node;
 
-typedef struct str_list
+typedef struct func_list //  node for function pointer stack
 {
     void (*func_ptr)(void);
-    struct str_list *previous;
-    struct str_list *next;
-} t_str_func;
+    struct func_list *previous;
+    struct func_list *next;
+} t_func_node;
 
-t_str_func *strListFront = NULL;
-t_str_func *strListRear = NULL;
+t_func_node *strListFront = NULL; 
+t_func_node *strListRear = NULL;
 
 void cruelWorld()
 {
@@ -48,7 +58,7 @@ void cruelWorld()
     exit(-1);
 }
 
-void print_diff(t_node *root1, t_node *root2, t_dir_list **front_ptr1, t_dir_list **front_ptr2);
+void print_diff(t_node *root1, t_dir_list **front_ptr1, t_dir_list **front_ptr2);
 void print_diff_tree(t_node *root);
 void removeDuplicate(t_node *root, t_dir_list **front_ptr, t_dir_list **rear_ptr);
 void invalid_arg_check();
@@ -57,7 +67,6 @@ void create_fd_queue(t_node **root_ptr, t_dir_list **file_queue_arr, t_dir_list 
 void strListPrint();
 void strListPush(void (*func_ptr)(void));
 void strListPop();
-void removeDuplicate();
 void search();
 void sync();
 void free_tree(t_node *root);
@@ -103,7 +112,7 @@ int main(int argc, char **argv, char **env)
         {NULL, 0, NULL, 0}};
     int option_index = 0;
 
-    FILE *fp = fopen("/dev/pts/0", "w");
+    // FILE *fp = fopen("/dev/pts/0", "w");
 
     if (argc < 2)
     {
@@ -259,11 +268,11 @@ int main(int argc, char **argv, char **env)
     {
         for (int i = 0; i < (no_dir - 1); i++)
         {
-            print_diff(root_arr[i], root_arr[no_dir - 1], &file_queue_arr_front[i], &file_queue_arr_front[no_dir - 1]);
+            print_diff(root_arr[i], &file_queue_arr_front[i], &file_queue_arr_front[no_dir - 1]);
             print_diff_tree(root_arr[i]);
             free_queue(&file_queue_arr_front[i], &file_queue_arr_rear[i]);
 
-            print_diff(root_arr[no_dir - 1], root_arr[i], &file_queue_arr_front[no_dir - 1], &file_queue_arr_front[i]);
+            print_diff(root_arr[no_dir - 1], &file_queue_arr_front[no_dir - 1], &file_queue_arr_front[i]);
             print_diff_tree(root_arr[no_dir - 1]);
             free_queue(&file_queue_arr_front[no_dir - 1], &file_queue_arr_rear[no_dir - 1]);
 
@@ -289,7 +298,6 @@ int main(int argc, char **argv, char **env)
     printf("\n😍Linux rocks😍\n");
     getchar();
 
-    //getchar();
     // ft_exit_alt_screen();
     //  print_tree(root_arr[1], 0);
 }
@@ -755,7 +763,7 @@ void strListPush(void (*func_ptr)(void))
 {
     if (strListRear == NULL && strListFront == NULL)
     {
-        t_str_func *node = (t_str_func *)malloc(sizeof(t_str_func));
+        t_func_node *node = (t_func_node *)malloc(sizeof(t_func_node));
         node->func_ptr = func_ptr;
         node->previous = NULL;
         node->next = NULL;
@@ -765,7 +773,7 @@ void strListPush(void (*func_ptr)(void))
         return;
     }
 
-    t_str_func *node = (t_str_func *)malloc(sizeof(t_str_func));
+    t_func_node *node = (t_func_node *)malloc(sizeof(t_func_node));
     node->func_ptr = func_ptr;
     strListRear->next = node;
     node->next = NULL;
@@ -782,7 +790,7 @@ void strListPop()
     {
         strListRear->previous->next = NULL;
 
-        t_str_func *tmp = strListRear;
+        t_func_node *tmp = strListRear;
         strListRear = strListRear->previous;
         free(tmp);
     }
@@ -795,7 +803,7 @@ void strListPop()
 }
 void strListPrint()
 {
-    t_str_func *dummy_front = strListFront;
+    t_func_node *dummy_front = strListFront;
     for (dummy_front; dummy_front != NULL; dummy_front = dummy_front->next)
     {
         dummy_front->func_ptr();
@@ -938,7 +946,7 @@ void removeDuplicate(t_node *root, t_dir_list **front_ptr, t_dir_list **rear_ptr
         }
     }
 }
-void print_diff(t_node *root1, t_node *root2, t_dir_list **front_ptr1, t_dir_list **front_ptr2)
+void print_diff(t_node *root1, t_dir_list **front_ptr1, t_dir_list **front_ptr2)
 {
     fprintf(stdout, FT_B_YEL "\t\t\tFiles Only in %s\n" FT_NRM, root1->path);
     t_dir_list *i = *front_ptr1;
