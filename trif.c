@@ -8,37 +8,37 @@
 #include "ft.h"
 #include "triflib.h"
 
-// rflag - remove duplicate flag
-// iflag - interactive mode flag
-// fflag - full path flag
-// dflag - directory only fflag
-// Dflag - Difference flag flag
-// level - level of the tree initialized as 10000, if user gives it will be over written
-// pstring - pattern string
-// sflag - sync flag
-// helpflag - help flag
-// fileflag - flag for, is file type specified or not
-// no_dir - number of directory argument given
+bool rflag = false;    // rflag - remove duplicate flag
+bool iflag = false;    // iflag - interactive mode flag
+bool fflag = false;    // fflag - full path flag
+bool dflag = false;    // dflag - directory only fflag
+bool Dflag = false;    // Dflag - Difference flag flag
+bool sflag = false;    // sflag - sync flag
+bool helpflag = false; // helpflag - help flag
+bool fileflag = true;  // fileflag - flag for, is file type specified or not
 
-int rflag = 0, iflag = 0, fflag = 0, dflag = 0, Dflag = 0;
-size_t level = 10000;
-char *p_string = NULL;
-char *filetype = NULL;
-int sflag = 0, helpflag = 0;
-int no_dir;
-int fileflag = 1;
+size_t level = 10000; // level - level of the tree initialized as 10000, if user gives it will be over written
+int no_dir;           // no_dir - number of directory argument given
+
+char *p_string = NULL; // pstring - pattern string
+char *filetype = NULL; // specified file type
+
 char *pwd = "";
 char *trash_path = "";
+
 typedef struct t_node // node in tree
 {
-    char path[PATH_MAX];  // full path name
-    char name[NAME_MAX];  // base name e.g lab-1 in lab-1.c
-    char *ext;            // extension e.g .c in lab-1.c
-    int isdir;            // is directory or not
-    int level;            // level of the file or directory
-    int flag;             // flag for , whether to print or not
-    int ishidden;         // is this hidden file or not
-    size_t n_files;       // number of files, if it is directory
+    char path[PATH_MAX]; // full path name
+    char name[NAME_MAX]; // base name e.g lab-1 in lab-1.c
+    char *ext;           // extension e.g .c in lab-1.c
+
+    bool isdir;    // is directory or not
+    bool flag;     // flag for , whether to print or not
+    bool ishidden; // is this hidden file or not
+
+    int level;      // level of the file or directory
+    size_t n_files; // number of files, if it is directory
+
     struct t_node **next; // array of pointers for child nodes( i.e) files
 } t_node;
 
@@ -49,53 +49,53 @@ typedef struct func_list //  node for function pointer stack
     struct func_list *next;
 } t_func_node;
 
-t_func_node *strListFront = NULL; 
+t_func_node *strListFront = NULL;
 t_func_node *strListRear = NULL;
 
-void cruelWorld()
+void cruelWorld() // keyboard interupt message
 {
+    if (pwd != NULL)
+        free(pwd);
+    if (trash_path != NULL)
+        free(trash_path);
+    if (p_string != NULL)
+        free(p_string);
+    if (filetype != NULL)
+        free(filetype);
     fprintf(stdout, FT_B_YEL "Good bye, Cruel World😿\n" FT_NRM);
-    exit(-1);
+    exit(EXIT_FAILURE);
 }
 
+void init_roots(t_node **root_arr, int argc, int optind, char **argv);
+t_node *create_tree(char *dir_name, char *dir_path, t_node *grandfather);
+t_node *create_dot(char *name, t_node *ptr, int x);
+
+void strListPrint();
+void strListPush(void (*func_ptr)(void));
+void strListPop();
+
+void mem_eff_print_tree(t_node *root);
 void print_diff(t_node *root1, t_dir_list **front_ptr1, t_dir_list **front_ptr2);
 void print_diff_tree(t_node *root);
 void removeDuplicate(t_node *root, t_dir_list **front_ptr, t_dir_list **rear_ptr);
 void invalid_arg_check();
 void free_queue(t_dir_list **ptr, t_dir_list **rear);
 void create_fd_queue(t_node **root_ptr, t_dir_list **file_queue_arr, t_dir_list **file_queue_arr_rear);
-void strListPrint();
-void strListPush(void (*func_ptr)(void));
-void strListPop();
+
 void search();
 void sync();
 void free_tree(t_node *root);
 void print_tree(t_node *root);
 char *ret_path(char *parent, char *filename);
-t_node *create_tree(char *dir_name, char *dir_path, t_node *grandfather);
-t_node *create_dot(char *name, t_node *ptr, int x);
 char *getBName(char *name);
 char *getExt(const char *fspec);
 void check_dir(int argc, int optind, char **argv);
-void init_roots(t_node **root_arr, int argc, int optind, char **argv);
 int main(int argc, char **argv, char **env)
 {
     signal(SIGINT, cruelWorld);
     pwd = strdup(getenv("PWD"));
     char *home = strdup(getenv("HOME"));
     int c;
-    trash_path = (char *)malloc((strlen(home) + 60) * sizeof(char));
-    trash_path[0] = '\0';
-    strcat(trash_path, home);
-    strcat(trash_path, "/.local/share/Trash/files/");
-    {
-        pid_t pid = fork();
-        if (!pid)
-        {
-            execl("/usr/bin/mkdir", "mkdir", "-p", trash_path, (char *)0);
-            exit(1);
-        }
-    }
 
     static struct option long_options[] = {
         /*   NAME       ARGUMENT           FLAG  SHORTNAME */
@@ -152,7 +152,7 @@ int main(int argc, char **argv, char **env)
                 break;
             case 'r':
                 // fprintf(stdout, "r-success\n");
-                rflag = 1;
+                rflag = true;
                 break;
             case 'i':
                 // fprintf(stdout, "i-success\n");
@@ -253,6 +253,18 @@ int main(int argc, char **argv, char **env)
     create_fd_queue(root_arr, file_queue_arr_front, file_queue_arr_rear);
     if (rflag)
     {
+        trash_path = (char *)malloc((strlen(home) + 60) * sizeof(char));
+        trash_path[0] = '\0';
+        strcat(trash_path, home);
+        strcat(trash_path, "/.local/share/Trash/files/");
+        {
+            pid_t pid = fork();
+            if (!pid)
+            {
+                execl("/usr/bin/mkdir", "mkdir", "-p", trash_path, (char *)0);
+                exit(1);
+            }
+        }
         for (int i = 0; i < no_dir; i++)
         {
             removeDuplicate(root_arr[i], &file_queue_arr_front[i], &file_queue_arr_rear[i]);
@@ -467,7 +479,7 @@ void print_diff_tree(t_node *root)
                     printf("├── ");
                 }
 
-                printf("%s%s\n", root->next[i]->name, root->next[i]->ext);
+                printf("%sjfal;fla%s\n", root->next[i]->name, root->next[i]->ext);
                 root->next[i]->flag = 0;
             }
         }
@@ -501,7 +513,7 @@ void init_roots(t_node **root_arr, int argc, int optind, char **argv)
 
         strcpy(n1->name, basename(n1->path));
         n1->ext = NULL;
-        n1->isdir = 1;
+        n1->isdir = true;
         n1->flag = 0;
         n1->level = 0;
 
@@ -564,7 +576,7 @@ void init_roots(t_node **root_arr, int argc, int optind, char **argv)
                 node->name[name_len] = '\0';
 
                 node->ext = ext;
-                node->isdir = 0;
+                node->isdir = false;
                 node->flag = 0;
                 node->level = 1;
                 node->n_files = -1;
@@ -599,7 +611,7 @@ t_node *create_dot(char *name, t_node *ptr, int x)
     strncpy(node->name, name, strlen(name));
     node->name[strlen(name)] = '\0';
     node->ext = NULL;
-    node->isdir = 1;
+    node->isdir = true;
     node->level = x;
     node->next = (t_node **)malloc(sizeof(t_node *));
     node->next[0] = ptr;
@@ -613,7 +625,7 @@ t_node *create_tree(char *dir_name, char *dir_path, t_node *grandfather)
     strncpy(n1->name, dir_name, strlen(dir_name));
     n1->name[strlen(dir_name)] = '\0';
     n1->ext = NULL;
-    n1->isdir = 1;
+    n1->isdir = true;
     n1->flag = 0;
     n1->level = grandfather->level + 1;
 
@@ -681,7 +693,7 @@ t_node *create_tree(char *dir_name, char *dir_path, t_node *grandfather)
                 node->ishidden = 0;
             }
             node->ext = ext;
-            node->isdir = 0;
+            node->isdir = false;
             node->flag = 0;
             node->level = n1->level + 1;
             node->n_files = -1;

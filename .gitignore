@@ -59,3 +59,5 @@ hell3.c
 hell.c
 trif copy.c
 trif
+.vscode/launch.json
+.vscode/tasks.json
