@@ -74,7 +74,7 @@ void strListPrint();
 void strListPush(void (*func_ptr)(void));
 void strListPop();
 
-void mem_eff_print_tree(t_node *root);
+void mem_eff_print_tree(char *dir_name, char *dir_path, int level);
 void print_diff(t_node *root1, t_dir_list **front_ptr1, t_dir_list **front_ptr2);
 void print_diff_tree(t_node *root);
 void removeDuplicate(t_node *root, t_dir_list **front_ptr, t_dir_list **rear_ptr);
@@ -243,8 +243,18 @@ int main(int argc, char **argv, char **env)
     while (optind < argc)
         printf("%s ", argv[optind++]);
     printf("\n");*/
+
     no_dir = argc - optind;
     check_dir(argc, optind, argv);
+
+    for (int i = 0; i < no_dir; i++)
+    {
+        char path[PATH_MAX];
+        realpath(argv[i], path);
+        char name[NAME_MAX] = basename(path);
+        mem_eff_print_tree(name, path, 1);
+    }
+    exit(EXIT_SUCCESS);
     t_node **root_arr = (t_node **)malloc(no_dir * sizeof(t_node));
     t_dir_list **file_queue_arr_front = (t_dir_list **)malloc(no_dir * sizeof(t_dir_list));
     t_dir_list **file_queue_arr_rear = (t_dir_list **)malloc(no_dir * sizeof(t_dir_list));
@@ -273,7 +283,7 @@ int main(int argc, char **argv, char **env)
         }
         free(root_arr);
 
-        printf("\n😍Linux rocks😍\n");
+        fprintf(stdout, "\n😍Linux rocks😍\n");
         exit(EXIT_SUCCESS);
     }
     if (Dflag)
@@ -292,7 +302,7 @@ int main(int argc, char **argv, char **env)
         }
         free(root_arr);
 
-        printf("\n😍Linux rocks😍\n");
+        fprintf(stdout, "\n😍Linux rocks😍\n");
         exit(EXIT_SUCCESS);
     }
     if ((!rflag) && (!Dflag))
@@ -300,6 +310,7 @@ int main(int argc, char **argv, char **env)
         for (int i = 0; i < no_dir; i++)
         {
             //ft_enter_alt_screen();
+
             print_tree(root_arr[i]);
             free_queue(&file_queue_arr_front[i], &file_queue_arr_rear[i]);
             free_tree(root_arr[i]);
@@ -307,7 +318,7 @@ int main(int argc, char **argv, char **env)
     }
     free(root_arr);
 
-    printf("\n😍Linux rocks😍\n");
+    fprintf(stdout, "\n😍Linux rocks😍\n");
     getchar();
 
     // ft_exit_alt_screen();
@@ -432,77 +443,55 @@ void print_tree(t_node *root)
 }
 void mem_eff_print_tree(char *dir_name, char *dir_path, int level)
 {
-
-    strncpy(n1->path, dir_path, strlen(dir_path));
-    n1->path[strlen(dir_path)] = '\0';
-    strncpy(n1->name, dir_name, strlen(dir_name));
-    fprintf(stdout,"%s")
+    fprintf(stdout, FT_B_BLU "%s\n" FT_NRM, dir_name);
 
     DIR *dir = opendir(dir_path);
     struct dirent *entry;
     struct stat st_buf;
-    int files = 0;
+    int files = 0, i = 0;
     if (dir == NULL)
     {
-        return NULL;
+        return;
     }
-    //counting no. of files
     while ((entry = readdir(dir)) != NULL)
     {
         files++;
-        // printf("file is %s\n", entry->d_name);
     }
-    n1->n_files = files;
     closedir(dir);
-    dir = opendir(n1->path);
+    dir = opendir(dir_path);
 
     while ((entry = readdir(dir)) != NULL)
     {
-        char *name;
-        name = strdup(entry->d_name);
-        char *path = ret_path(n1->path, name);
+        char *name = strdup(entry->d_name);
+        char *path = ret_path(dir_path, name);
         int status = stat(path, &st_buf);
         if (status != 0)
         {
             printf("%s,", path);
             perror("trif: ");
             printf("Error, errno = %d\n", errno);
-            return NULL;
+            return;
         }
         if (S_ISREG(st_buf.st_mode))
         {
-            t_node *node = (t_node *)malloc(sizeof(t_node));
-
             char *base_name = getBName(name);
             char *ext = strdup(getExt(name));
-
             size_t path_len = strlen(path);
             size_t name_len = strlen(base_name);
 
-            strncpy(node->path, path, path_len);
-            strncpy(node->name, base_name, name_len);
-
-            free(base_name);
-
-            node->path[path_len] = '\0';
-            node->name[name_len] = '\0';
-
-            if (name_len == 0)
+            strListPrint();
+            if (files == i + 1)
             {
-                node->ishidden = 1;
+                printf("└── ");
             }
             else
             {
-                node->ishidden = 0;
+                printf("├── ");
             }
-            node->ext = ext;
-            node->isdir = false;
-            node->flag = 0;
-            node->level = n1->level + 1;
-            node->n_files = -1;
-            node->next = NULL;
-            n1->next[pos] = node;
-            pos++;
+            fprintf(stdout, "%s%s\n", base_name, ext);
+
+            free(base_name);
+            free(ext);
         }
         if (S_ISDIR(st_buf.st_mode))
         {
@@ -511,16 +500,28 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int level)
             }
             else
             {
-                n1->next[pos] = create_tree(name, path, n1);
-
-                pos++;
+                strListPrint();
+                void (*func_ptr)(void);
+                if (files == i + 1)
+                {
+                    func_ptr = &tab;
+                    printf("└── ");
+                }
+                else
+                {
+                    func_ptr = &hyphen;
+                    printf("├── ");
+                }
+                strListPush(func_ptr);
+                mem_eff_print_tree(name, path, level + 1);
+                strListPop();
             }
         }
+        i++;
         free(name);
         free(path);
     }
     closedir(dir);
-    return n1;
 }
 void print_diff_tree(t_node *root)
 {
@@ -535,23 +536,24 @@ void print_diff_tree(t_node *root)
     }
     for (int i = 2; i < root->n_files; i++)
     {
+        if (root->next[i] == NULL) // ! This checking is needed, it happens when a directory is deleted in interactive mode
+            return;
         if (root->next[i]->isdir)
         {
             strListPrint();
+
+            void (*func_ptr)(void);
             if (root->n_files == i + 1)
             {
+                func_ptr = &tab;
                 printf("└── ");
             }
             else
             {
+                func_ptr = &hyphen;
                 printf("├── ");
             }
 
-            void (*func_ptr)(void);
-            if (root->n_files == i + 1)
-                func_ptr = &tab;
-            else
-                func_ptr = &hyphen;
             strListPush(func_ptr);
             print_tree(root->next[i]);
             strListPop();
@@ -570,7 +572,7 @@ void print_diff_tree(t_node *root)
                     printf("├── ");
                 }
 
-                printf("%sjfal;fla%s\n", root->next[i]->name, root->next[i]->ext);
+                fprintf(stdout, "%s%s\n", root->next[i]->name, root->next[i]->ext);
                 root->next[i]->flag = 0;
             }
         }
