@@ -251,8 +251,9 @@ int main(int argc, char **argv, char **env)
     {
         char path[PATH_MAX];
         realpath(argv[i], path);
-        char name[NAME_MAX] = basename(path);
+        char *name= __xpg_basename(path);
         mem_eff_print_tree(name, path, 1);
+        
     }
     exit(EXIT_SUCCESS);
     t_node **root_arr = (t_node **)malloc(no_dir * sizeof(t_node));
@@ -441,10 +442,20 @@ void print_tree(t_node *root)
         }
     }
 }
-void mem_eff_print_tree(char *dir_name, char *dir_path, int level)
-{
-    fprintf(stdout, FT_B_BLU "%s\n" FT_NRM, dir_name);
+void mem_eff_print_tree(char *dir_name, char *dir_path, int _level)
+{ //checking for full path flag
+    if (fflag)
+        fprintf(stdout, FT_B_BLU "%s\n" FT_NRM, dir_path);
+    else
+        fprintf(stdout, FT_B_BLU "%s\n" FT_NRM, dir_name);
 
+    //checking level
+    if (_level == level)
+    {
+        return;
+    }
+
+    //opening directory
     DIR *dir = opendir(dir_path);
     struct dirent *entry;
     struct stat st_buf;
@@ -453,6 +464,7 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int level)
     {
         return;
     }
+    //finding the number of files
     while ((entry = readdir(dir)) != NULL)
     {
         files++;
@@ -460,6 +472,7 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int level)
     closedir(dir);
     dir = opendir(dir_path);
 
+    //again reading the directory
     while ((entry = readdir(dir)) != NULL)
     {
         char *name = strdup(entry->d_name);
@@ -472,6 +485,7 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int level)
             printf("Error, errno = %d\n", errno);
             return;
         }
+        // is regular file
         if (S_ISREG(st_buf.st_mode))
         {
             char *base_name = getBName(name);
@@ -488,11 +502,17 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int level)
             {
                 printf("├── ");
             }
-            fprintf(stdout, "%s%s\n", base_name, ext);
+            //checking for fullpath flag
+            if (fflag)
+                fprintf(stdout, "%s\n", path);
+            else
+                fprintf(stdout, "%s%s\n", base_name, ext);
 
             free(base_name);
             free(ext);
         }
+
+        // is directory file
         if (S_ISDIR(st_buf.st_mode))
         {
             if (!strcmp(name, ".") || !strcmp(name, ".."))
@@ -513,7 +533,7 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int level)
                     printf("├── ");
                 }
                 strListPush(func_ptr);
-                mem_eff_print_tree(name, path, level + 1);
+                mem_eff_print_tree(name, path, _level + 1);
                 strListPop();
             }
         }
