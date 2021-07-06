@@ -75,6 +75,8 @@ void strListPush(void (*func_ptr)(void));
 void strListPop();
 
 void mem_eff_print_tree(char *dir_name, char *dir_path, int level);
+bool isvalid(char *name, char *path, char *ext);
+
 void print_diff(t_node *root1, t_dir_list **front_ptr1, t_dir_list **front_ptr2);
 void print_diff_tree(t_node *root);
 void removeDuplicate(t_node *root, t_dir_list **front_ptr, t_dir_list **rear_ptr);
@@ -239,21 +241,18 @@ int main(int argc, char **argv, char **env)
     }
 
     invalid_arg_check();
-    /* printf("non-option ARGV-elements: ");
-    while (optind < argc)
-        printf("%s ", argv[optind++]);
-    printf("\n");*/
 
     no_dir = argc - optind;
+    //checks wh
     check_dir(argc, optind, argv);
 
-    for (int i = 0; i < no_dir; i++)
+    for (int i = optind; i < argc; i++)
     {
+        
         char path[PATH_MAX];
         realpath(argv[i], path);
-        char *name= __xpg_basename(path);
-        mem_eff_print_tree(name, path, 1);
-        
+        char *name = __xpg_basename(path);
+        mem_eff_print_tree(name, path, 0);
     }
     exit(EXIT_SUCCESS);
     t_node **root_arr = (t_node **)malloc(no_dir * sizeof(t_node));
@@ -442,6 +441,47 @@ void print_tree(t_node *root)
         }
     }
 }
+bool isvalid(char *name, char *path, char *ext)
+{
+    if (dflag)
+    {
+        return false;
+    }
+    else
+    {
+        if (filetype != NULL)
+        {
+            if (strcmp(ext, filetype) == 0)
+            {
+                if (p_string != NULL)
+                {
+                    char *p = strstr(name, p_string);
+                    if (p)
+                        return true;
+                    else
+                        return false;
+                }
+                else
+                    return true;
+            }
+            else
+                return false;
+        }
+        else
+        {
+            if (p_string != NULL)
+            {
+                char *p = strstr(name, p_string);
+                if (p)
+                    return true;
+                else
+                    return false;
+            }
+            else
+                return true;
+        }
+    }
+}
 void mem_eff_print_tree(char *dir_name, char *dir_path, int _level)
 { //checking for full path flag
     if (fflag)
@@ -485,6 +525,7 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int _level)
             printf("Error, errno = %d\n", errno);
             return;
         }
+
         // is regular file
         if (S_ISREG(st_buf.st_mode))
         {
@@ -492,22 +533,23 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int _level)
             char *ext = strdup(getExt(name));
             size_t path_len = strlen(path);
             size_t name_len = strlen(base_name);
-
-            strListPrint();
-            if (files == i + 1)
+            if (isvalid(name, path, ext))// * checking whether to print or not
             {
-                printf("└── ");
+                strListPrint();
+                if (files == i + 1)
+                {
+                    printf("└── ");
+                }
+                else
+                {
+                    printf("├── ");
+                }
+                //checking for fullpath flag
+                if (fflag)
+                    fprintf(stdout, "%s\n", path);
+                else
+                    fprintf(stdout, "%s%s\n", base_name, ext);
             }
-            else
-            {
-                printf("├── ");
-            }
-            //checking for fullpath flag
-            if (fflag)
-                fprintf(stdout, "%s\n", path);
-            else
-                fprintf(stdout, "%s%s\n", base_name, ext);
-
             free(base_name);
             free(ext);
         }
@@ -557,7 +599,7 @@ void print_diff_tree(t_node *root)
     for (int i = 2; i < root->n_files; i++)
     {
         if (root->next[i] == NULL) // ! This checking is needed, it happens when a directory is deleted in interactive mode
-            return;
+            continue;
         if (root->next[i]->isdir)
         {
             strListPrint();
