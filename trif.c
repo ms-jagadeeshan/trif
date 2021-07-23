@@ -243,7 +243,8 @@ int main(int argc, char **argv, char **env)
     invalid_arg_check();
 
     no_dir = argc - optind;
-    //checks wh
+
+    // check weather directory exist accessible or not
     check_dir(argc, optind, argv);
 
     if (!sflag && !Dflag && !rflag)
@@ -255,6 +256,7 @@ int main(int argc, char **argv, char **env)
             char *name = __xpg_basename(path);
             mem_eff_print_tree(name, path, 0);
         }
+        fprintf(stdout, "\n😍Linux rocks😍\n");
         exit(EXIT_SUCCESS);
     }
     t_node **root_arr = (t_node **)malloc(no_dir * sizeof(t_node));
@@ -327,7 +329,7 @@ int main(int argc, char **argv, char **env)
         fprintf(stdout, "\n😍Linux rocks😍\n");
         exit(EXIT_SUCCESS);
     }
-    if ((!rflag) && (!Dflag))
+    /* if ((!rflag) && (!Dflag))
     {
         for (int i = 0; i < no_dir; i++)
         {
@@ -337,14 +339,7 @@ int main(int argc, char **argv, char **env)
             free_queue(&file_queue_arr_front[i], &file_queue_arr_rear[i]);
             free_tree(root_arr[i]);
         }
-    }
-    free(root_arr);
-
-    fprintf(stdout, "\n😍Linux rocks😍\n");
-    getchar();
-
-    // ft_exit_alt_screen();
-    //  print_tree(root_arr[1], 0);
+    }*/
 }
 void free_tree(t_node *root) // frees a tree
 {
@@ -521,7 +516,7 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int _level)
     DIR *dir = opendir(dir_path);
     struct dirent *entry;
     struct stat st_buf;
-    int files = 0, i = 0;
+    int files = 0, i = 2;
     if (dir == NULL)
     {
         return;
@@ -581,6 +576,7 @@ void mem_eff_print_tree(char *dir_name, char *dir_path, int _level)
         {
             if (!strcmp(name, ".") || !strcmp(name, ".."))
             {
+                i--;
             }
             else
             {
@@ -1262,6 +1258,8 @@ void sync_folder(t_node *root, char *dest, char *src)
                         fprintf(stdout, "Copying %s%s --> %s%s\n", FT_B_YEL, root->child[i]->path, dest, FT_NRM);
                     }
                 }
+                free(dest_folder);
+                free(dest);
                 root->child[i]->flag = 0;
             }
         }
