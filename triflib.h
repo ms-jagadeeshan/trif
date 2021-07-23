@@ -1,13 +1,9 @@
 #ifndef TRIFLIB_H
 #define TRIFLIB_H
-typedef enum
-{
-    false,
-    true
-} bool;
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 typedef struct t_dir_list
 {
     struct t_node *ptr;
