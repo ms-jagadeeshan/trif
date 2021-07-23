@@ -1,6 +1,12 @@
 # trif
 
-A command line utitlity
+A command line utitlity for linux
+
+## Functions
+- Printing directories in tree format
+- Syncing directories
+- Printing difference between directories
+- Removing duplicates
 
 # Usage: trif [OPTION] .....  [DIRECTORY] .....
 
