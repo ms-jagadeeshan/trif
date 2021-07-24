@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include "ft.h"
 #include "triflib.h"
 
@@ -119,8 +120,8 @@ int main(int argc, char **argv, char **env)
 
     if (argc < 2)
     {
-        fprintf(stdout, "trif: missing operand\n");
-        fprintf(stdout, "Try: 'trif --help' for more information\n");
+        fprintf(stderr, "trif: missing operand\n");
+        fprintf(stderr, "Try: 'trif --help' for more information\n");
         exit(EXIT_FAILURE);
     }
     else
@@ -170,8 +171,8 @@ int main(int argc, char **argv, char **env)
                     level = atoi(optarg);
                 else
                 {
-                    fprintf(stdout, "trif: option -L or --level requires an integer argument greater than 0 .\n");
-                    fprintf(stdout, "Try: 'trif --help' for more information\n");
+                    fprintf(stderr, "trif: option -L or --level requires an integer argument greater than 0 .\n");
+                    fprintf(stderr, "Try: 'trif --help' for more information\n");
 
                     exit(EXIT_FAILURE);
                 }
@@ -195,11 +196,11 @@ int main(int argc, char **argv, char **env)
                 sflag = true;
                 break;
             case '?':
-                fprintf(stdout, "Try: 'trif --help' for more information\n");
+                fprintf(stderr, "Try: 'trif --help' for more information\n");
                 exit(EXIT_FAILURE);
                 break;
             default:
-                fprintf(stdout, "?? getopt returned character code 0%o ??\n", c);
+                fprintf(stderr, "?? getopt returned character code 0%o ??\n", c);
             }
         }
     }
@@ -213,30 +214,21 @@ int main(int argc, char **argv, char **env)
     {
         if (argc - optind >= 2)
         {
-            if (argc - optind >= 3)
-            {
-                if (sflag)
-                {
-                    fprintf(stdout, "trif: option -s or --sync requires two arguments(two directory\n)");
-                    fprintf(stdout, "Try: 'trif --help' for more information\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
         }
         else
         {
             if (sflag)
             {
-                fprintf(stdout, "trif: missing destination file operand after \'%s\'\n", argv[optind]);
-                fprintf(stdout, "Try: 'trif --help' for more information\n");
+                fprintf(stderr, "trif: missing destination file operand after \'%s\'\n", argv[optind]);
+                fprintf(stderr, "Try: 'trif --help' for more information\n");
                 exit(EXIT_FAILURE);
             }
         }
     }
     else
     {
-        fprintf(stdout, "trif: missing operand\n");
-        fprintf(stdout, "Try: 'trif --help' for more information\n");
+        fprintf(stderr, "trif: missing operand\n");
+        fprintf(stderr, "Try: 'trif --help' for more information\n");
         exit(EXIT_FAILURE);
     }
 
@@ -1031,21 +1023,20 @@ void invalid_arg_check()
 {
     if (rflag && dflag)
     {
-        fprintf(stdout, "trif: %s\n", strerror(EINVAL));
-        fprintf(stdout, "\'-r\' and \'-d\' should not be used together\n");
+        fprintf(stderr, "trif: %s\n", strerror(EINVAL));
+        fprintf(stderr, "\'-r\' and \'-d\' should not be used together\n");
         exit(EXIT_FAILURE);
     }
     if (sflag && dflag)
     {
-        fprintf(stdout, "trif: %s\n", strerror(EINVAL));
-        fprintf(stdout, "\'-r\' and \'-d\' should not be used together\n");
+        fprintf(stderr, "trif: %s\n", strerror(EINVAL));
+        fprintf(stderr, "\'-r\' and \'-d\' should not be used together\n");
         exit(EXIT_FAILURE);
     }
     if (sflag && (p_string != NULL))
     {
-        fprintf(stdout, "When using -s and -P together, -P doesn't have any effect currently\n");
-        fprintf(stdout, "Working on it\n");
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "When using -s and -P together, -P doesn't have any effect currently\n");
+        fprintf(stderr, "Working on it\n");
     }
     if (fflag && iflag)
     {
@@ -1110,7 +1101,7 @@ void removeDuplicate(t_node *root, t_dir_list **front_ptr, t_dir_list **rear_ptr
                     pid_t pid = fork();
                     if (!pid)
                     {
-                        execl("/usr/bin/mv", "mv", j->ptr->path, trash_path, (char *)0);
+                        execl("/usr/bin/mv", "mv", "-v", "-n", j->ptr->path, trash_path, (char *)0);
 
                         exit(1);
                     }
@@ -1218,20 +1209,21 @@ void sync_folder(t_node *root, char *dest, char *src)
                 strcat(dest, "/");
                 strcat(dest, root->child[i]->name);
                 strcat(dest, root->child[i]->ext);
+                int status;
                 if (access(dest_folder, F_OK) == 0)
                 {
                     if (access(dest, F_OK) == 0)
                     {
                     }
-                    else
+                    else    
                     {
                         pid_t pid1 = fork();
                         if (!pid1)
                         {
-                            execl("/usr/bin/cp", "cp", root->child[i]->path, dest, (char *)0);
+                            execl("/usr/bin/cp", "cp", "-v", "-n", root->child[i]->path, dest, (char *)0);
                             exit(1);
                         }
-                        fprintf(stdout, "Copying %s%s --> %s%s\n", FT_B_YEL, root->child[i]->path, dest, FT_NRM);
+                        waitpid(pid1, &status, 0);
                     }
                 }
                 else
@@ -1239,9 +1231,10 @@ void sync_folder(t_node *root, char *dest, char *src)
                     pid_t pid = fork();
                     if (!pid)
                     {
-                        execl("/usr/bin/mkdir", "mkdir", "-p", dest_folder, (char *)0);
+                        execl("/usr/bin/mkdir", "/usr/bin/mkdir", "-p", dest_folder, (char *)0);
                         exit(1);
                     }
+                    waitpid(pid, &status, 0);
                     fprintf(stdout, "Creating %s%s%s\n", FT_B_YEL, dest_folder, FT_NRM);
 
                     if (access(dest, F_OK) == 0)
@@ -1252,10 +1245,10 @@ void sync_folder(t_node *root, char *dest, char *src)
                         pid_t pid1 = fork();
                         if (!pid1)
                         {
-                            execl("/usr/bin/cp", "cp", root->child[i]->path, dest, (char *)0);
+                            execl("/usr/bin/cp", "cp", "-v", "-n", root->child[i]->path, dest, (char *)0);
                             exit(1);
                         }
-                        fprintf(stdout, "Copying %s%s --> %s%s\n", FT_B_YEL, root->child[i]->path, dest, FT_NRM);
+                        waitpid(pid1, &status, 0);
                     }
                 }
                 free(dest_folder);
