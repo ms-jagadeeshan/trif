@@ -1102,10 +1102,10 @@ void removeDuplicate(t_node *root, t_dir_list **front_ptr, t_dir_list **rear_ptr
                     if (!pid)
                     {
                         execl("/usr/bin/mv", "mv", "-v", "-n", j->ptr->path, trash_path, (char *)0);
-
                         exit(1);
                     }
-                    fprintf(stdout, "%sDuplicate found%s-%s\n", FT_B_BLU, FT_NRM, j->ptr->path);
+                    fprintf(stdout, "%sDuplicate found%s-%s == %s\n", FT_B_BLU, FT_NRM, j->ptr->path, i->ptr->path);
+                    waitpid(pid, &status, 0);
                     fprintf(stdout, "%sSuccessfully deleted%s\n", FT_B_GRN, FT_NRM);
                     t_dir_list *tmp = j;
                     previous->next = j->next;
@@ -1215,7 +1215,7 @@ void sync_folder(t_node *root, char *dest, char *src)
                     if (access(dest, F_OK) == 0)
                     {
                     }
-                    else    
+                    else
                     {
                         pid_t pid1 = fork();
                         if (!pid1)
