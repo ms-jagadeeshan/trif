@@ -11,6 +11,20 @@
 #define NULL '\0'
 #endif
 
+#define CLEAR_SCR() printf("\033[2J")                  // Clear Screen
+#define CURSOR_HOME() printf("\033[H")                // Move cursor to home position (0,0)
+#define CURSOR_MOVE(y, x) printf("\033[%i;%iH", y, x) // Move cursor to x,y
+#define BEEP() printf("\a");                          // terminal bell
+#define BOLD() printf("\033[1m")                      // Cursor bold
+#define FOREGROUND_COLOR(x) printf("\033[3%im", x)    // Set foreground color
+#define CLEAR_ATTR() printf("\033[0m")                // Clear bold/color attributes
+#define SCREEN_SAVE() printf("\033[?47h")             // Save screen display
+#define SCREEN_RESTORE() printf("\033[?47l")          // Restore screen to previously saved state
+#define CURSOR_SAVE() printf("\033[s")                // Save cursor position
+#define CURSOR_RESTORE() printf("\033[u")             // Restore cursor position
+#define CURSOR_HIDE() printf("\033[?25l")             // Hide cursor
+#define CURSOR_SHOW() printf("\033[?25h")             // Unhide cursor
+
 #define FT_RED "\x1B[0;41m"
 #define FT_GRN "\x1B[0;32m"
 #define FT_YEL "\x1B[0;33m"
@@ -41,7 +55,7 @@
 
 #define ft_move_cursor(X, Y) printf("\033[%d;%dH", X, Y)
 
-void ft_get_rows_cols(int *rows, int *cols);
+    void ft_get_rows_cols(int *rows, int *cols);
 
 #define ft_enter_alt_screen() puts("\033[?1049h\033[H")
 #define ft_exit_alt_screen() puts("\033[?1049l")
